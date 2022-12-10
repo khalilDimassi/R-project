@@ -125,7 +125,7 @@ regressor = lm(formula = MinorAxisLength ~ .,
                data = training_set)
 
 # Predicting the Test set results
-y_pred = predict(regressor, newdata = test_set)
+y_preds = predict(regressor, newdata = test_set)
 
 # assessing model with basic R summery() method
 summary(regressor) # adj.R² = 0.89; p-value = 1.03e-277
@@ -146,11 +146,11 @@ library(caTools)
 library(ROCR)
 
 # Splitting data set
-split <- sample.split(clean_set, SplitRatio = 0.7)
+split <- sample.split(classification_set, SplitRatio = 0.7)
 split
 
-X_y_train <- subset(clean_set, split == "TRUE")
-X_y_test <- subset(clean_set, split == "FALSE")
+X_y_train <- subset(classification_set, split == "TRUE")
+X_y_test <- subset(classification_set, split == "FALSE")
 
 # Training model
 logistic_model <- glm(Class ~ ., 
@@ -164,19 +164,19 @@ summary(logistic_model)
 
 
 # Predict test data based on model
-y_pred <- predict(logistic_model, X_y_test, type = "response")
+lr_preds <- predict(logistic_model, X_y_test, type = "response")
 
 # Changing probabilities
-y_pred <- ifelse(y_pred >0.5, 1, 0)
+lr_preds <- ifelse(lr_preds > 0.5, 1, 0) # if pred > 0.5 then assign 1. else 0
 
 # Evaluating model accuracy using confusion matrix
-table(X_y_test$Class, y_pred)
+table(X_y_test$Class, lr_preds)
 
-missing_classerr <- mean(y_pred != X_y_test$Class)
+missing_classerr <- mean(lr_preds != X_y_test$Class)
 print(paste('Accuracy =', 1 - missing_classerr))
 
 # ROC-AUC Curve
-ROCPred <- prediction(y_pred, X_y_test$Class) 
+ROCPred <- prediction(lr_preds, X_y_test$Class) 
 ROCPer <- performance(ROCPred, measure = "tpr", 
                       x.measure = "fpr")
 
