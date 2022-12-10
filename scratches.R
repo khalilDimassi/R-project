@@ -1,5 +1,6 @@
 library(readr)
 Raisin <- read_csv("Raisin.csv")
+summary(Raisin)
 
 # checking  for null values in data set
 apply(Raisin, 2, function(col)sum(is.na(col))) # null values in Eccentricity and Class only
@@ -193,14 +194,6 @@ abline(a = 0, b = 1)
 
 auc <- round(auc, 4)
 legend(.6, .4, auc, title = "AUC", cex = 1)
-
-
-
-
-
-
-
-
 
 
 
