@@ -24,6 +24,18 @@ library(VIM)
 Raisin = kNN(Raisin)[1:8]
 View(Raisin)
 
+# select numeric data
+numeric_variables <- Raisin[, names(Raisin) != "Class"]
+
+# normalize with min max method
+# install.packages('caret')
+library(caret)
+process <- preProcess(as.data.frame(numeric_variables), method=c("range"))
+numeric_variables <- predict(process, as.data.frame(numeric_variables))
+
+# reassign normalized data
+numeric_variables -> Raisin[, names(Raisin) != "Class"]
+
 # correlation matrix
 cormat <- round(cor(Raisin),2)
 head(cormat)
@@ -85,29 +97,48 @@ high_cor
 cor_vars <- unique(high_cor[,1])
 cor_vars
 
-# new, clean data set
-clean_set <- Raisin[, !names(Raisin) %in% cor_vars]
-
-# split data
-X <- clean_set[, names(clean_set) != "Class"]
-y <- clean_set$Class
-
-# normalize with min max method
-# install.packages('caret')
-library(caret)
-process <- preProcess(as.data.frame(X), method=c("range"))
-X <- predict(process, as.data.frame(X))
-
-# merging data
-clean_set <- X
-clean_set$Class <- y
+# subsets for modeling
+classification_set <- Raisin[, !names(Raisin) %in% cor_vars]
+regression_set <- Raisin[, !names(Raisin) %in% c("Area", "MajorAxisLength", "ConvexArea", "Class")]
 
 # pair plot
 # install.packages("GGally")
 library(GGally)
-ggpairs(X, mapping = ggplot2::aes(color = as.character(y)))
+ggpairs(regression_set, mapping = ggplot2::aes(color = as.character(Raisin$Class)))
 
-######################### Modeling ######################### 
+######################### Modeling - Regression - Linear Regression #####################################
+
+# Splitting the dataset into the Training set and Test set
+# install.packages('caTools')
+library(caTools)
+library(broom)
+
+set.seed(42) # for consistant testing
+
+split = sample.split(regression_set$MinorAxisLength, SplitRatio = 0.7)
+
+training_set = subset(regression_set, split == TRUE)
+test_set = subset(regression_set, split == FALSE)
+
+# Fitting Multiple Linear Regression to the Training set
+regressor = lm(formula = MinorAxisLength ~ .,
+               data = training_set)
+
+# Predicting the Test set results
+y_pred = predict(regressor, newdata = test_set)
+
+# assessing model with basic R summery() method
+summary(regressor) # adj.R² = 0.89; p-value = 1.03e-277
+
+# assessing model with Broom's glance() method
+glance(regressor) # AIC = -1910;  BIC = -1888
+
+# the 4 plots
+# install.packages("ggfortify")
+library(ggfortify)
+autoplot(regressor)
+
+######################### Modeling - Classification - GLM - Logistic Regression ######################### 
 
 # install.packages("caTools")    # For Logistic regression
 # install.packages("ROCR")       # For ROC curve to evaluate model
@@ -122,7 +153,7 @@ X_y_train <- subset(clean_set, split == "TRUE")
 X_y_test <- subset(clean_set, split == "FALSE")
 
 # Training model
-logistic_model <- glm(Class ~ Eccentricity + Extent + Perimeter, 
+logistic_model <- glm(Class ~ ., 
                       data = X_y_train, 
                       family = "binomial",
                       method = "glm.fit")
